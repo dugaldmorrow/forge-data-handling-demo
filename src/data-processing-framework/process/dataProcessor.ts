@@ -4,10 +4,8 @@ import { Job } from '../types/Job';
 import { popLogContext, pushLogContext, log } from './log';
 import { DataProcessingContext } from '../types/DataProcessingContext';
 import { SequnetialJobHandler } from './SequnetialJobHandler';
-import { initialSpaceJobConfig, onProcessSpaces } from '../../data-processing/spaceProcessor';
-import { initialUserJobConfig, onProcessUsers } from '../../data-processing/userProcessor';
-import { JobProcessingResult } from 'src/data-processing-framework/types/JobProcessingResult';
-import { JobProcessor } from 'src/data-processing-framework/types/JobProcessor';
+import { initialSpaceJobConfig } from '../../data-processing/spaceProcessor';
+import { initialUserJobConfig } from '../../data-processing/userProcessor';
 import { registerJobProcessors } from '../../data-processing/registerJobProcessors';
 
 /*
