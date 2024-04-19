@@ -8,19 +8,6 @@ import { log, popLogContext, pushLogContext } from "./log";
 import { JobProgress } from "../types/JobProgress";
 import { DataProcessingContext } from "../types/DataProcessingContext";
 
-/*
-
-Since the data processing activities are performed in parallel Forge function invocations, each dealing with
-different aspects of the data processing, we need to have a way to track the progress of each of these aspects
-in separate storage buckets. The alternate would be to ensure all data processing activities are serialised 
-across multiple async event invocations and pass the progress in the context of the event, but this is
-not possible in certain circumstances such as querying all container items and then dealing with the
-data processing of each item because the querying of container items does not allow a limit to be set on 
-the getMany call, which in turn necessitates dealing with each item in parallel in separate async event
-invocations.
-
-*/
-
 const storageKeyPrefix = `data-processing-job-`;
 
 const buildDataProcessingStatusStorageKey = (dataProcessingId) => {
@@ -36,10 +23,16 @@ export const getDataProcessingStatus = async (dataProcessingId: string): Promise
   return status;
 }
 
-export const updateDataProcessingStatus = async (dataProcessingId: string, status: TaskStatus, jobProgress: JobProgress, message?: string) => {
+export const updateDataProcessingStatus = async (
+    dataProcessingId: string,
+    dataProcessingStartTime: number,
+    status: TaskStatus,
+    jobProgress: JobProgress,
+    message?: string) => {
   pushLogContext(`updateDataProcessingStatus:`);
   const dataProcessingStatus: DataProcessingStatus = {
     dataProcessingId: dataProcessingId,
+    dataProcessingStartTime: dataProcessingStartTime,
     status: status,
     jobProgress: jobProgress,
     message: message ?? ''
@@ -84,11 +77,7 @@ export const computeJobProgress = (context: DataProcessingContext): JobProgress 
 export const getDataProcessingStatuses = async (cursor: undefined | Cursor): Promise<DataProcessingStatusesResult> => {
   pushLogContext(`getDataProcessingStatuses:`);
   const statuses: DataProcessingStatus[] = [];
-
-  // Set to a small limit just to demonstrate and validate the use of the
-  // cursor. In a real world app, increase this to a higher value (e.g. 20).
-  const queryLimit = 2;
-
+  const queryLimit = 20; // (max allowed by the Forge storage API)
   const queryResult = await storage.query()
     .where('key', startsWith(storageKeyPrefix))
     .limit(queryLimit)
@@ -116,7 +105,7 @@ export const deleteDataProcessingStatusById = async (dataProcessingId: string) =
 
 export const clearAllJobStatuses = async () => {
   pushLogContext(`clearAllJobStatuses:`);
-  const queryLimit = 20; // (max allowed)
+  const queryLimit = 20; // (max allowed by the Forge storage API)
   let allDeleted = false;
   let nextCursor = undefined;
   // It's unlikely there will be too many items to delete so we assume it can all be done quickly within 

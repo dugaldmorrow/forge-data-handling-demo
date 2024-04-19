@@ -5,46 +5,32 @@ import { InvocationError, InvocationErrorCode, PayloadTooBigError, Queue } from 
 import { DataProcessingContext } from "src/types/DataProcessingContext";
 import { initialRetryDelaySeconds, maxRetries } from "./config";
 import { Job } from "../types/Job";
-import { JobProcessingResult } from "src/types/JobProcessingResult";
 import { RetryInfo } from "src/types/RetryInfo";
+import { TaskStatus } from '../types/TaskStatus';
+import { JobProcessor } from "src/types/JobProcessor";
 
 // https://developer.atlassian.com/platform/forge/runtime-reference/async-events-api/
 const maxAllowedRetryAfter = 900;
+const maxAllowedAsyncEventRetries = 4;
 
-export type QueueItemProcessor = {
-  processJob: (job: Job<any>, event: any, context: DataProcessingContext, jobHandler: JobHandler) => Promise<JobProcessingResult>;
-}
-
-export class QueueJobHandler implements JobHandler {
+export class SequnetialJobHandler implements JobHandler {
 
   private jobQueue: Queue;
-  private jobTypeIdsToQueueItemProcessors = new Map<string, QueueItemProcessor>();
+  private jobTypeIdsToJobProcessors = new Map<string, JobProcessor>();
 
   constructor(jobQueue: Queue) {
     this.jobQueue = jobQueue;
   }
 
-  registerQueueItemProcessor = (jobTypeId: string, queueItemProcessor: QueueItemProcessor) => {
-    this.jobTypeIdsToQueueItemProcessors.set(jobTypeId, queueItemProcessor);
+  registerJobProcessor = (jobTypeId: string, jobProcessor: JobProcessor) => {
+    this.jobTypeIdsToJobProcessors.set(jobTypeId, jobProcessor);
   }
 
-  processQueueItem = async (queueItem: any): Promise<void> => {
+  processQueueItem = async (queueItem: any): Promise<any> => {
+    pushLogContext('onProcessNextJob');
     const payload = queueItem.payload;
-    const context = payload.context;
-    log(` * Decrementing queue size from ${context.queueState.queueSize} to ${context.queueState.queueSize - 1}`)
-    context.queueState.queueSize--;
-    pushLogContext(`job-event-listener:`);
-    log(` * ${JSON.stringify(payload.event)}`);
-    const jobResult = await this.onProcessNextJob(payload);
-    popLogContext();
-    return jobResult;
-  }
-
-  private onProcessNextJob = async (payload: any): Promise<any> => {
     const event = payload.event;
     const context = payload.context as DataProcessingContext;
-
-    pushLogContext('onProcessNextJob');
     const dataProcessingJobs = context.dataProcessingJobs;
     const nextJob = dataProcessingJobs.find((job: Job<any>) => job.status === undefined || job.status === 'IN_PROGRESS');
     if (nextJob) {
@@ -56,21 +42,20 @@ export class QueueJobHandler implements JobHandler {
         nextJob.jobContext.totalSuccessCount++;
       }
       nextJob.status = 'IN_PROGRESS';
-      const queueItemProcessor = this.jobTypeIdsToQueueItemProcessors.get(nextJob.jobTypeId);
-      if (queueItemProcessor) {
-        const result = await queueItemProcessor.processJob(nextJob, event, context, this);
+      const jobProcessor = this.jobTypeIdsToJobProcessors.get(nextJob.jobTypeId);
+      if (jobProcessor) {
+        const result = await jobProcessor.processJob(nextJob);
         if (result.ok) {
           this.enqueueJob(event, context);
         } else if (result.retryInfo) {
           log(` * Detected the failure of job "${nextJob.jobTypeId}".`);
           const retryCount = payload.retryContext ? payload.retryContext.retryCount : 0;
-          if (retryCount < maxRetries) {
+          if (retryCount < Math.min(maxAllowedAsyncEventRetries, maxRetries)) {
             const retryInfo: RetryInfo = result.retryInfo;
-            const lastRetryDelaySeconds = payload.retryContext ? payload.retryContext.lastRetryDelaySeconds : initialRetryDelaySeconds;
-            const retryAfter: number = Math.min(maxAllowedRetryAfter, retryInfo.retryAfter ? retryInfo.retryAfter : 2 * lastRetryDelaySeconds);
+            const retryAfter = retryInfo.retryAfter ? retryInfo.retryAfter : this.computeRetryBackoff(retryCount);
             log(` * Retrying job "${nextJob.jobTypeId}" after ${retryAfter} seconds...`);
-            let retryReason = InvocationErrorCode.FUNCTION_RETRY_REQUEST;
-            let retryData = undefined;
+            const retryReason = InvocationErrorCode.FUNCTION_RETRY_REQUEST;
+            const retryData = undefined;
             popLogContext();
             return new InvocationError({
               retryAfter: retryAfter,
@@ -80,22 +65,23 @@ export class QueueJobHandler implements JobHandler {
           } else {
             const message = `Processing failed at job "${nextJob.jobTypeId}" - max retries exceeded (${retryCount}).`;
             log(` * ${message}`);
-            await updateDataProcessingStatus(event.dataProcessingId, 'DONE_FAILED', computeJobProgress(context), message);
+            await this.updateStatus(event, context, 'DONE_FAILED', message);
           }
         } else {
           const message = `Processing failed at job "${nextJob.jobTypeId}" - failed result and no retry info.`;
           log(` * ${message}`);
-          await updateDataProcessingStatus(event.dataProcessingId, 'DONE_FAILED', computeJobProgress(context), message);
+          await this.updateStatus(event, context, 'DONE_FAILED', message);
         }
       } else {
-        console.error(` * Internal error: Unexpected job: ${nextJob.jobTypeId}`);
-        await updateDataProcessingStatus(event.dataProcessingId, 'DONE_FAILED', computeJobProgress(context));
+        const message = `Internal error: Unexpected job: ${nextJob.jobTypeId}.`;
+        console.error(` * ${message}`);
+        await this.updateStatus(event, context, 'DONE_FAILED', message);
       }
     } else {
       log(` ****************************************************`);
       log(` *** All data processing jobs have been processed ***`);
       log(` ****************************************************`);
-      await updateDataProcessingStatus(event.dataProcessingId, 'DONE_SUCCESS', computeJobProgress(context));
+      await this.updateStatus(event, context, 'DONE_SUCCESS');
     }
     popLogContext();
   }
@@ -112,21 +98,37 @@ export class QueueJobHandler implements JobHandler {
         context: context as any
       }
       const pushSettings: any = delayInSeconds ? { delaySeconds: delayInSeconds } : undefined;
-      /*const queueJobTypeId =*/ await this.jobQueue.push(payload, pushSettings);
-      // const queueState = context.queueState;
-      // queueState.jobsIdsToEnqueueTimes[queueJobTypeId] = new Date().getTime();
-      await updateDataProcessingStatus(event.dataProcessingId, 'IN_PROGRESS', computeJobProgress(context));
+      await this.jobQueue.push(payload, pushSettings);
+      await this.updateStatus(event, context, 'IN_PROGRESS');
     } catch (error) {
       if (error instanceof PayloadTooBigError) {
-        console.error(`Detected PayloadTooBigError: ${error}`);
+        const message = `Detected PayloadTooBigError: ${error}`;
+        console.error(message);
+        this.updateStatus(event, context, 'DONE_FAILED', message);
       } else {
         // Note that it should not be possible to get a RateLimitError here since we are sequentially 
         // creating async tasks.
         console.error(`Unexpected error detected: ${error}`);
       }
-      await updateDataProcessingStatus(event.dataProcessingId, 'DONE_FAILED', computeJobProgress(context));
+      await this.updateStatus(event, context, 'DONE_FAILED');
     }
     popLogContext();
+  }
+
+  private updateStatus = async (event: any, context: DataProcessingContext, status: TaskStatus, message?: string): Promise<void> => {
+    await updateDataProcessingStatus(event.dataProcessingId, event.dataProcessingStartTime, status, computeJobProgress(context), message);
+  }
+
+  private computeRetryBackoff = (retryCount: number): number => {
+    let retryAfter = initialRetryDelaySeconds;
+    // Exponential retry backoff
+    for (let i = 0; i < retryCount; i++) {
+      retryAfter = Math.min(retryAfter * 2, maxAllowedRetryAfter);
+      if (retryAfter >= maxAllowedRetryAfter) {
+        break;
+      }
+    }
+    return retryAfter;
   }
 
 }

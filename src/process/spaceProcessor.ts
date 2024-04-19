@@ -1,8 +1,6 @@
 import { log, popLogContext, pushLogContext } from "./log";
 import { asApp } from "../mock-api/mockApi";
-import { DataProcessingContext } from "../types/DataProcessingContext";
 import { Job } from "../types/Job";
-import { JobHandler } from "src/types/JobHandler";
 import { JobProcessingResult } from "src/types/JobProcessingResult";
 
 // This type can be customised to include any context required for the job.
@@ -16,7 +14,7 @@ export type SpaceJobContext = {
 }
 
 export const initialSpaceJobConfig: Job<SpaceJobContext> = {
-  jobTypeId: 'process-confluence-spaces',
+  jobTypeId: 'process-spaces',
   status: undefined,
   jobContext: {
     nextSpacesCursor: undefined,
@@ -26,10 +24,7 @@ export const initialSpaceJobConfig: Job<SpaceJobContext> = {
   }
 }
 
-export const onProcessSpaces = async (
-    job: Job<SpaceJobContext>,
-    event: any, context: DataProcessingContext,
-    jobHandler: JobHandler): Promise<JobProcessingResult> => {
+export const onProcessSpaces = async (job: Job<SpaceJobContext>): Promise<JobProcessingResult> => {
   pushLogContext('onProcessSpaces');
   log(` * job.jobContext.nextSpacesCursor = ${job.jobContext.nextSpacesCursor}`);
   const jobProcessingResult: JobProcessingResult = {

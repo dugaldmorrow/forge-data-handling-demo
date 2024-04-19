@@ -1,8 +1,6 @@
 import { log, popLogContext, pushLogContext } from "./log";
 import { asApp } from "../mock-api/mockApi";
-import { DataProcessingContext } from "../types/DataProcessingContext";
 import { Job } from "../types/Job";
-import { JobHandler } from "src/types/JobHandler";
 import { JobProcessingResult } from "src/types/JobProcessingResult";
 
 // This type can be customised to include any context required for the job.
@@ -26,11 +24,7 @@ export const initialUserJobConfig: Job<UserJobContext> = {
   }
 }
 
-export const onProcessUsers = async (
-    job: Job<UserJobContext>,
-    event: any,
-    context: DataProcessingContext,
-    jobHandler: JobHandler): Promise<JobProcessingResult> => {
+export const onProcessUsers = async (job: Job<UserJobContext>): Promise<JobProcessingResult> => {
   pushLogContext('onProcessUsers');
   log(` * job.jobContext.nextUsersCursor = ${job.jobContext.nextUsersCursor}`);
   const jobProcessingResult: JobProcessingResult = {

@@ -3,6 +3,7 @@ import { JobProgress } from "./JobProgress";
 
 export type DataProcessingStatus = {
   dataProcessingId: string;
+  dataProcessingStartTime: number;
   status: TaskStatus;
   jobProgress: JobProgress;
   message: string;

@@ -1,14 +1,13 @@
-import { computeJobProgress, getDataProcessingStatus, updateDataProcessingStatus } from './statusController';
 import { Queue } from '@forge/events';
 import Resolver from "@forge/resolver";
 import { Job } from '../types/Job';
 import { popLogContext, pushLogContext, log } from './log';
 import { DataProcessingContext } from '../types/DataProcessingContext';
-import { QueueItemProcessor, QueueJobHandler } from './QueueJobHandler';
+import { SequnetialJobHandler } from './SequnetialJobHandler';
 import { initialSpaceJobConfig, onProcessSpaces } from './spaceProcessor';
 import { initialUserJobConfig, onProcessUsers } from './userProcessor';
-import { JobHandler } from 'src/types/JobHandler';
 import { JobProcessingResult } from 'src/types/JobProcessingResult';
+import { JobProcessor } from 'src/types/JobProcessor';
 
 /*
 Sequence of events (paste into https://www.websequencediagrams.com/)
@@ -32,23 +31,22 @@ asyncTask-> asyncTask: etc
 
 */
 
-
-const spaceQueueItemProcessor: QueueItemProcessor = {
-  processJob: async (job: Job<any>, event: any, context: DataProcessingContext, jobHandler: JobHandler): Promise<JobProcessingResult> => {
-    return await onProcessSpaces(job, event, context, jobHandler);
+const spaceJobProcessor: JobProcessor = {
+  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
+    return await onProcessSpaces(job);
   }
 }
 
-const userQueueItemProcessor: QueueItemProcessor = {
-  processJob: async (job: Job<any>, event: any, context: DataProcessingContext, jobHandler: JobHandler): Promise<JobProcessingResult> => {
-    return await onProcessUsers(job, event, context, jobHandler);
+const userJobProcessor: JobProcessor = {
+  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
+    return await onProcessUsers(job);
   }
 }
 
 export const jobQueue = new Queue({ key: 'jobQueue' });
-const jobHandler = new QueueJobHandler(jobQueue);
-jobHandler.registerQueueItemProcessor('process-confluence-spaces', spaceQueueItemProcessor);
-jobHandler.registerQueueItemProcessor('process-users', userQueueItemProcessor);
+const jobHandler = new SequnetialJobHandler(jobQueue);
+jobHandler.registerJobProcessor('process-spaces', spaceJobProcessor);
+jobHandler.registerJobProcessor('process-users', userJobProcessor);
 
 const asyncResolver = new Resolver();
 asyncResolver.define("job-event-listener", jobHandler.processQueueItem);

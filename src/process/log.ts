@@ -1,4 +1,6 @@
 
+// This is a basic utility to make the log output more readable by indenting log messages based on the current context.
+
 const logContext = {
   indentLevel: 0
 }

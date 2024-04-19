@@ -7,10 +7,12 @@ import { DataProcessingContext } from 'src/types/DataProcessingContext';
 const resolver = new Resolver();
 
 resolver.define('startDataProcessing', async (request) => {
-  console.log(request);
-  const dataProcessingId = `data-processing-${new Date().getTime()}`;
+  // console.log(request);
+  const dataProcessingStartTime = new Date().getTime();
+  const dataProcessingId = `data-processing-${dataProcessingStartTime}`;
   const event = {
-    dataProcessingId: dataProcessingId
+    dataProcessingId: dataProcessingId,
+    dataProcessingStartTime: dataProcessingStartTime
   };
   const context: DataProcessingContext = {
     dataProcessingJobs: [],

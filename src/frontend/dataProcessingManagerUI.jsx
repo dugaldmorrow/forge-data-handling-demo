@@ -16,7 +16,6 @@ const statusRefreshPeriodMillis = 5000;
 const JobManagerUI = () => {
 
   const [dataProcessingId, setDataProcessingId] = useState('');
-  const [dataProcessingStatus, setDataProcessingStatus] = useState(undefined);
   const [dataProcessingStatuses, setDataProcessingStatuses] = useState([]);
   const [lastTriggerTime, setLastTriggerTime] = useState(0);
 
@@ -29,41 +28,16 @@ const JobManagerUI = () => {
     await invoke('deleteDataProcessingStatusById', {dataProcessingId: status.dataProcessingId});
     const allStatuses = dataProcessingStatuses.filter((s) => s.dataProcessingId !== status.dataProcessingId);
     setDataProcessingStatuses(allStatuses);
-    setDataProcessingStatus(undefined);
     setDataProcessingId('');
   }
 
   const onTriggerDataProcessing = async (response) => {
     console.log(`Status debugging: in onTriggerDataProcessing.`);
-    setDataProcessingStatus('IN_PROGRESS');
     const dataProcessingStartedResponseText = await invoke('startDataProcessing', {});
     const responseData = JSON.parse(dataProcessingStartedResponseText);
     const dataProcessingId = responseData.dataProcessingId;
     setDataProcessingId(dataProcessingId);
-    // setTriggerCount(triggerCount + 1);
-    console.log(`Status debugging: updating last trigger time...`);
     setLastTriggerTime(new Date().getTime());
-
-    // if (typeof setTriggerCount === 'function') {
-    //   setTriggerCount(triggerCount + 1);
-    // } else {
-    //   console.log(`Status debugging: setTriggerCount is not a function.`);
-    // }
-
-    // const status = {
-    //   dataProcessingId: dataProcessingId,
-    //   status: 'IN_PROGRESS',
-    //   jobProgress: {
-    //     jobCount: 0,
-    //     jobCompletionCount: 0,
-    //     percentComplete: 0,
-    //     queueSize: 0
-    //   },
-    //   message: ''
-    // }
-    // const allStatuses = dataProcessingStatuses.concat([status]);
-    // console.log(`onTriggerDataProcessing: setting allStatuses: ${JSON.stringify(allStatuses, null, 2)}`);
-    // setDataProcessingStatuses(allStatuses);
 
     const dataProcessingStartedFlag = showFlag({
       id: 'data-processing-started-flag',
@@ -73,39 +47,29 @@ const JobManagerUI = () => {
       isAutoDismiss: true,
     });
     setTimeout(dataProcessingStartedFlag.close, 2000);
-
-    // await refreshDataProcessingStatuses(true, undefined, dataProcessingStatuses, [], setDataProcessingStatuses);
-
-    // if (!dataProcessingStatusInterval) {
-    //   const interval = setInterval(() => {
-    //     pollDataProcessingStatus(dataProcessingId, allStatuses, setDataProcessingStatuses);
-    //   }, statusRefreshPeriodMillis);
-    //   setDataProcessingStatusInterval(interval);
-    // }
-  }
-
-  const countIncompleteDataProcessingStatuses = (dataProcessingStatuses) => {
-    return dataProcessingStatuses.filter((status) => status === 'IN_PROGRESS').length;
   }
 
   const refreshDataProcessingStatuses = async () => {
     const now = new Date().getTime();
     const millsSinceLastTrigger = now - lastTriggerTime;
     console.log(`Status debugging: millsSinceLastTrigger = ${millsSinceLastTrigger}ms.`);
-    const inProgressCount = countIncompleteDataProcessingStatuses(dataProcessingStatuses);
-    // const retrievalRequired = millsSinceLastTrigger < statusRefreshPeriodMillis || inProgressCount > 0;
-    const retrievalRequired = true;
+    const inProgressCount = dataProcessingStatuses.filter((status) => status.status === 'IN_PROGRESS').length;
+    const retrievalRequired = millsSinceLastTrigger < (2 * statusRefreshPeriodMillis) || inProgressCount > 0;
+    console.log(`Status debugging: retrievalRequired = ${retrievalRequired}.`);
     if (retrievalRequired) {
       const cursor = undefined;
       const dataProcessingStatusesResult = await invoke('getDataProcessingStatuses', {cursor: cursor});
-      console.log(`Status debugging: Setting ${dataProcessingStatusesResult.statuses.length} statuses...`);
+      console.log(`Status debugging: Setting ${dataProcessingStatusesResult.statuses.length} statuses (inProgressCount = ${inProgressCount})...`);
       setDataProcessingStatuses(dataProcessingStatusesResult.statuses);
     } else {
       console.log(`Status debugging: no status refresh required since all tasks have completed.`);
     }
   }
 
-  useEffect(async () => {
+  useEffect(() => {
+    if (lastTriggerTime === 0) {
+      setLastTriggerTime(new Date().getTime());
+    }
     console.log(`Status debugging: useEffect called`);
     const interval = setInterval(refreshDataProcessingStatuses, statusRefreshPeriodMillis);
     // Return an unmount function - clear interval to prevent memory leaks.
@@ -113,89 +77,12 @@ const JobManagerUI = () => {
       console.log(`Status debugging: clearing interval`);
       clearInterval(interval)
     };
-  // }, [dataProcessingStatuses, lastTriggerTime]);
-  }, []);
-  // }, [lastTriggerTime]);
+  }, [dataProcessingStatuses, lastTriggerTime]);
 
-
-  // if (setDataProcessingStatuses) {
-  //   if (typeof setDataProcessingStatuses === 'function') {
-  //     setDataProcessingStatuses(dataProcessingStatusesResult.statuses);
-  //   } else {
-  //     console.log(`Status debugging: setDataProcessingStatuses is not a function.`);
-  //   }  
-  // } else {
-  //   console.log(`Status debugging: setDataProcessingStatuses does not exist.`);
-  // }
-
-
-  // --------
-
-  // Requirements:
-  //  * Need 
-
-  // const [statuses, setStatuses] = useState([]);
-  // const [triggerCount, setTriggerCount] = useState(0);
-  
-  // const onTriggerProcessing = async (response) => {
-  //   await invoke('startProcessing', {});
-  //   setTriggerCount(triggerCount + 1);
-  // }
-
-  // const refreshStatusesFromBackend = async () => {
-  //   const inProgressCount = statuses.filter((status) => status === 'IN_PROGRESS').length;
-  //   const refreshRequired = inProgressCount > 0;
-  //   if (refreshRequired) {
-  //     const statuses = await invoke('getStatuses', {cursor: cursor});
-  //     setStatuses(statuses);
-  //   }
-  // }
-
-  // useEffect(async () => {
-  //   const interval = setInterval(refreshStatusesFromBackend, statusRefreshPeriodMillis);
-  //   // Return an unmount function - clear interval to prevent memory leaks.
-  //   return () => clearInterval(interval);
-  // }, [triggerCount, statuses]);
-
-  // --------
-
-
-
-  // const refreshDataProcessingStatuses = async (
-  //     force, cursor, dataProcessingStatuses, accumulatedDataProcessingStatuses, setDataProcessingStatuses) => {
-  //   const inProgressCount = countIncompleteDataProcessingStatuses(dataProcessingStatuses);
-  //   const retrievalRequired = force || inProgressCount > 0;
-  //   // const retrievalRequired = false;
-  //   if (retrievalRequired) {
-  //     const dataProcessingStatusesResult = await invoke('getDataProcessingStatuses', {cursor: cursor});
-  //     if (dataProcessingStatusesResult.statuses && dataProcessingStatusesResult.statuses.length ) {
-  //       accumulatedDataProcessingStatuses = accumulatedDataProcessingStatuses.concat(dataProcessingStatusesResult.statuses);
-  //     }
-  //     if (dataProcessingStatusesResult.cursor) {
-  //       const additionalDataProcessingStatuses = await refreshDataProcessingStatuses(
-  //         true, dataProcessingStatusesResult.cursor, dataProcessingStatuses, accumulatedDataProcessingStatuses, setDataProcessingStatuses);
-  //       if (additionalDataProcessingStatuses.statuses && additionalDataProcessingStatuses.statuses.length ) {
-  //         accumulatedDataProcessingStatuses = accumulatedDataProcessingStatuses.concat(additionalDataProcessingStatuses);
-  //       }
-  //     } else {
-  //       // console.log(`Setting data processing statuses to ${JSON.stringify(refreshedDataProcessingStatuses, null, 2)}`);
-  //       // console.log(`${logPrefx} setting data processing statuses (length = ${accumulatedDataProcessingStatuses})...`);
-  //       setDataProcessingStatuses(accumulatedDataProcessingStatuses);
-  //     }
-  //   }
-  //   return accumulatedDataProcessingStatuses;
-  // }
-
-  // useEffect(async () => {
-  //   const cursor = undefined;
-  //   // let refreshedDataProcessingStatuses = dataProcessingStatuses;
-  //   let refreshedDataProcessingStatuses = await refreshDataProcessingStatuses(true, cursor, dataProcessingStatuses, [], setDataProcessingStatuses);
-  //   const interval = setInterval(async () => {
-  //     refreshedDataProcessingStatuses = await refreshDataProcessingStatuses(true, cursor, refreshedDataProcessingStatuses, [], setDataProcessingStatuses);
-  //   }, statusRefreshPeriodMillis);
-  //   // Return an unmount function - clear interval to prevent memory leaks.
-  //   return () => clearInterval(interval);
-  // }, []);
+  const renderStartTime = (status) => {
+    const message = `${new Date(status.dataProcessingStartTime).toLocaleTimeString()}`;
+    return <Text>{message}</Text>
+  }
 
   const renderQueueSize = (status) => {
     const message = `${status.jobProgress.queueSize}`;
@@ -228,9 +115,7 @@ const JobManagerUI = () => {
   }
 
   const renderDataProcessingStatusCell = (status) => {
-    // console.log(`renderStatusCell: rendering status: ${JSON.stringify(status, null, 2)}`);
     const progressBarValue = status.jobProgress.percentComplete ? status.jobProgress.percentComplete / 100.0 : 0;
-    // console.log(`renderStatusCell: progressBarValue = ${progressBarValue}`);
     const appearance = 'success';
     return (
       <Stack>
@@ -245,12 +130,11 @@ const JobManagerUI = () => {
   }
 
   const renderStatusesTable = (dataProcessingStatuses) => {
-    // console.log(`renderStatusesTable: rendering ${dataProcessingStatuses.length} statuses`);
     const head = {
       cells: [
         {
-          key: "id",
-          content: "ID",
+          key: "startTime",
+          content: "Start time",
           isSortable: true,
         }, {
           key: "queueSize",
@@ -279,8 +163,8 @@ const JobManagerUI = () => {
       key: `row-${dataProcessingId}`,
       cells: [
         {
-          key: status.dataProcessingId,
-          content: status.dataProcessingId,
+          key: status.dataProcessingStartTime,
+          content: renderStartTime(status),
         }, {
           content: renderQueueSize(status),
         }, {
@@ -305,7 +189,7 @@ const JobManagerUI = () => {
     }));
     return (
       <DynamicTable
-        rowsPerPage={4}
+        rowsPerPage={10}
         head={head}
         rows={rows}
       />
