@@ -1,0 +1,30 @@
+modules:
+  macro:
+    - key: data-processing-manager-macro
+      resource: data-processing-ui-res
+      render: native
+      resolver:
+        function: ui-resolver-fn
+      title: Forge Data Handling Demo - Data Manager Macro
+      description: This macro provides controls for managing the processing of data.
+  consumer:
+    - key: job-consumer
+      queue: jobQueue
+      resolver:
+        function: queue-fn
+        method: job-event-listener
+  function:
+    - key: queue-fn
+      handler: index.onDataProcessorAsyncJob
+    - key: ui-resolver-fn
+      handler: resolvers.onMacroEvent
+resources:
+  - key: data-processing-ui-res
+    path: src/frontend/dataProcessingManagerUI.jsx
+app:
+  id: ari:cloud:ecosystem::app/536d5647-c1ce-43a6-b4f0-274fc57c249e
+  runtime:
+      name: nodejs18.x
+permissions:
+  scopes:
+    - storage:app
