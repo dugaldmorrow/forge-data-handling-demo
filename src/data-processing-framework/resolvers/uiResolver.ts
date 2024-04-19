@@ -1,8 +1,8 @@
 import Resolver from '@forge/resolver';
 import { getDataProcessingStatus, clearAllJobStatuses, getDataProcessingStatuses, deleteDataProcessingStatusById } from '../process/statusController';
 import { onStartDataProcessing } from '../process/dataProcessor';
-import { Cursor } from 'src/types/Cursor';
-import { DataProcessingContext } from 'src/types/DataProcessingContext';
+import { Cursor } from 'src/data-processing-framework/types/Cursor';
+import { DataProcessingContext } from 'src/data-processing-framework/types/DataProcessingContext';
 
 const resolver = new Resolver();
 

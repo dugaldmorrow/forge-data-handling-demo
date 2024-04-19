@@ -1,8 +1,7 @@
-import { JobTypeId } from "./JobTypeId";
 import { TaskStatus } from "./TaskStatus";
 
 export type Job<JobContext> = {
-  jobTypeId: JobTypeId;
+  jobTypeId: string;
   status: undefined | TaskStatus;
   jobContext: JobContext;
 }

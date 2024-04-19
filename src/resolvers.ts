@@ -1,2 +1,2 @@
 
-export { onMacroEvent } from './resolvers/uiResolver';
+export { onMacroEvent } from './data-processing-framework/resolvers/uiResolver';

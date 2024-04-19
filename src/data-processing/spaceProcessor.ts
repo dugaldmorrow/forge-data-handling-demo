@@ -1,7 +1,8 @@
-import { log, popLogContext, pushLogContext } from "./log";
-import { asApp } from "../mock-api/mockApi";
-import { Job } from "../types/Job";
-import { JobProcessingResult } from "src/types/JobProcessingResult";
+import { log, popLogContext, pushLogContext } from "../data-processing-framework/process/log";
+import { asApp } from "../data-processing-framework/mock-api/mockApi";
+import { Job } from "../data-processing-framework/types/Job";
+import { JobProcessingResult } from "src/data-processing-framework/types/JobProcessingResult";
+import { JobProcessor } from "src/data-processing-framework/types/JobProcessor";
 
 // This type can be customised to include any context required for the job.
 // An object of this type will be passed serially from one async task to the
@@ -21,6 +22,13 @@ export const initialSpaceJobConfig: Job<SpaceJobContext> = {
     spaceItemsToProcess: [],
     totalSuccessCount: 0,
     totalRetryCount: 0
+  }
+}
+
+export const spaceJobProcessor: JobProcessor = {
+  getJobTypeId: () => 'process-spaces',
+  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
+    return await onProcessSpaces(job);
   }
 }
 

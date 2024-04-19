@@ -2,12 +2,12 @@ import { JobHandler } from "../types/JobHandler";
 import { log, popLogContext, pushLogContext } from "./log";
 import { computeJobProgress, updateDataProcessingStatus } from "./statusController";
 import { InvocationError, InvocationErrorCode, PayloadTooBigError, Queue } from "@forge/events";
-import { DataProcessingContext } from "src/types/DataProcessingContext";
+import { DataProcessingContext } from "src/data-processing-framework/types/DataProcessingContext";
 import { initialRetryDelaySeconds, maxRetries } from "./config";
 import { Job } from "../types/Job";
-import { RetryInfo } from "src/types/RetryInfo";
+import { RetryInfo } from "src/data-processing-framework/types/RetryInfo";
 import { TaskStatus } from '../types/TaskStatus';
-import { JobProcessor } from "src/types/JobProcessor";
+import { JobProcessor } from "src/data-processing-framework/types/JobProcessor";
 
 // https://developer.atlassian.com/platform/forge/runtime-reference/async-events-api/
 const maxAllowedRetryAfter = 900;
@@ -22,8 +22,8 @@ export class SequnetialJobHandler implements JobHandler {
     this.jobQueue = jobQueue;
   }
 
-  registerJobProcessor = (jobTypeId: string, jobProcessor: JobProcessor) => {
-    this.jobTypeIdsToJobProcessors.set(jobTypeId, jobProcessor);
+  registerJobProcessor = (jobProcessor: JobProcessor) => {
+    this.jobTypeIdsToJobProcessors.set(jobProcessor.getJobTypeId(), jobProcessor);
   }
 
   processQueueItem = async (queueItem: any): Promise<any> => {

@@ -1,4 +1,4 @@
-import { TaskStatus } from "src/types/TaskStatus";
+import { TaskStatus } from "src/data-processing-framework/types/TaskStatus";
 import { JobProgress } from "./JobProgress";
 
 export type DataProcessingStatus = {

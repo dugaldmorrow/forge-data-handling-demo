@@ -4,10 +4,11 @@ import { Job } from '../types/Job';
 import { popLogContext, pushLogContext, log } from './log';
 import { DataProcessingContext } from '../types/DataProcessingContext';
 import { SequnetialJobHandler } from './SequnetialJobHandler';
-import { initialSpaceJobConfig, onProcessSpaces } from './spaceProcessor';
-import { initialUserJobConfig, onProcessUsers } from './userProcessor';
-import { JobProcessingResult } from 'src/types/JobProcessingResult';
-import { JobProcessor } from 'src/types/JobProcessor';
+import { initialSpaceJobConfig, onProcessSpaces } from '../../data-processing/spaceProcessor';
+import { initialUserJobConfig, onProcessUsers } from '../../data-processing/userProcessor';
+import { JobProcessingResult } from 'src/data-processing-framework/types/JobProcessingResult';
+import { JobProcessor } from 'src/data-processing-framework/types/JobProcessor';
+import { registerJobProcessors } from '../../data-processing/registerJobProcessors';
 
 /*
 Sequence of events (paste into https://www.websequencediagrams.com/)
@@ -31,22 +32,9 @@ asyncTask-> asyncTask: etc
 
 */
 
-const spaceJobProcessor: JobProcessor = {
-  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
-    return await onProcessSpaces(job);
-  }
-}
-
-const userJobProcessor: JobProcessor = {
-  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
-    return await onProcessUsers(job);
-  }
-}
-
 export const jobQueue = new Queue({ key: 'jobQueue' });
 const jobHandler = new SequnetialJobHandler(jobQueue);
-jobHandler.registerJobProcessor('process-spaces', spaceJobProcessor);
-jobHandler.registerJobProcessor('process-users', userJobProcessor);
+registerJobProcessors(jobHandler);
 
 const asyncResolver = new Resolver();
 asyncResolver.define("job-event-listener", jobHandler.processQueueItem);

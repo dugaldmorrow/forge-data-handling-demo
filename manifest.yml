@@ -20,7 +20,7 @@ modules:
       handler: resolvers.onMacroEvent
 resources:
   - key: data-processing-ui-res
-    path: src/frontend/dataProcessingManagerUI.jsx
+    path: src/data-processing-framework/frontend/dataProcessingManagerUI.jsx
 app:
   id: ari:cloud:ecosystem::app/536d5647-c1ce-43a6-b4f0-274fc57c249e
   runtime:

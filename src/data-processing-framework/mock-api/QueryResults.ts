@@ -1,4 +1,4 @@
-import { Cursor } from "src/types/Cursor";
+import { Cursor } from "src/data-processing-framework/types/Cursor";
 
 export type QueryResults<ItemType> = {
   items: ItemType[];

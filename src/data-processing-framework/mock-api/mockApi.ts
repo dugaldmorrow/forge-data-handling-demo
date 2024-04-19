@@ -1,4 +1,4 @@
-import { Cursor } from "src/types/Cursor";
+import { Cursor } from "src/data-processing-framework/types/Cursor";
 import { QueryResults } from "./QueryResults";
 import { Entity } from "./Entity";
 import { ApiResponse } from "./ApiResponse";
