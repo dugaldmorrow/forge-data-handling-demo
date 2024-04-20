@@ -11,8 +11,7 @@ const resolver = new Resolver();
 
 resolver.define('startDataProcessing', async (request) => {
   // console.log(request);
-  // console.log(request);
-  const event = await createEventFromMacroStartDataProcessingTrigger(request.payload);
+  const event = await createEventFromMacroStartDataProcessingTrigger();
 
   // Add some data to the event so for the macro UI
   const dataProcessingStartTime = new Date().getTime();
