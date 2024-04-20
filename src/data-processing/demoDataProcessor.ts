@@ -15,6 +15,11 @@ jobHandler.setStatusChangeHandler(onStatusChanged);
 jobHandler.registerJobProcessor(spaceJobProcessor);
 jobHandler.registerJobProcessor(userJobProcessor);
 
+export const createEventFromMacroStartDataProcessingTrigger = async (payload: any): Promise<any> => {
+  const event = {};
+  return event;
+}
+
 export const onStartDemoDataProcessing = async (event: any, context: DataProcessingContext) => {
   pushLogContext('onStartDemoDataProcessing');
   const initialJobConfig: Job<any>[] = [

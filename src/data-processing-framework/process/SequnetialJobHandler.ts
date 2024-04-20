@@ -97,8 +97,6 @@ export class SequnetialJobHandler implements JobHandler {
   enqueueJob = async (event: any, context: DataProcessingContext, delayInSeconds?: number) => {
     pushLogContext('processAsynchronously');
     try {
-      // Clear the retry context
-      context.retryContext = undefined;
       log(` * Incrementing queue size from ${context.queueState.queueSize} to ${context.queueState.queueSize + 1}`)
       context.queueState.queueSize++;
       const payload = {

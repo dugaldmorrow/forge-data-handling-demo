@@ -2,26 +2,29 @@ import Resolver from '@forge/resolver';
 import { getDataProcessingStatus, clearAllJobStatuses, getDataProcessingStatuses, deleteDataProcessingStatusById } from '../process/statusController';
 import { Cursor } from '../../data-processing-framework/types/Cursor';
 import { DataProcessingContext } from '../../data-processing-framework/types/DataProcessingContext';
-import { onStartDataProcessing } from '../..';
+import {
+  createEventFromMacroStartDataProcessingTrigger,
+  onStartDataProcessing
+} from '../..';
 
 const resolver = new Resolver();
 
 resolver.define('startDataProcessing', async (request) => {
   // console.log(request);
+  // console.log(request);
+  const event = await createEventFromMacroStartDataProcessingTrigger(request.payload);
+
+  // Add some data to the event so for the macro UI
   const dataProcessingStartTime = new Date().getTime();
   const dataProcessingId = `data-processing-${dataProcessingStartTime}`;
-  const event = {
-    dataProcessingId: dataProcessingId,
-    dataProcessingStartTime: dataProcessingStartTime
-  };
+  event.dataProcessingId = dataProcessingId;
+  event.dataProcessingStartTime = dataProcessingStartTime;
+
   const context: DataProcessingContext = {
     dataProcessingJobs: [],
     queueState: {
       queueSize: 0,
     },
-    retryContext: {
-      lastRetryDelaySeconds: 0
-    }
   };
   try {
     await onStartDataProcessing(event, context);
