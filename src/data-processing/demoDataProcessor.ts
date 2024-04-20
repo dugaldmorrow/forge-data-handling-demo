@@ -4,8 +4,14 @@ import { popLogContext, pushLogContext } from "../data-processing-framework/proc
 import { Job } from "../data-processing-framework/types/Job";
 import { DataProcessingContext } from "../data-processing-framework/types/DataProcessingContext";
 import { getJobHandler } from "../data-processing-framework/process/dataProcessor";
+import { TaskStatus } from "src/data-processing-framework/types/TaskStatus";
+
+const onStatusChanged = async (event: any, taskStatus: TaskStatus, percent?: number, message?: string) => {
+  // Optionally react to status change events here.
+}
 
 const jobHandler = getJobHandler();
+jobHandler.setStatusChangeHandler(onStatusChanged);
 jobHandler.registerJobProcessor(spaceJobProcessor);
 jobHandler.registerJobProcessor(userJobProcessor);
 

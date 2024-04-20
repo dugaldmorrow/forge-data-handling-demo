@@ -27,12 +27,12 @@ export const initialSpaceJobConfig: Job<SpaceJobContext> = {
 
 export const spaceJobProcessor: JobProcessor = {
   getJobTypeId: () => 'process-spaces',
-  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
-    return await onProcessSpaces(job);
+  processJob: async (event: any, job: Job<any>): Promise<JobProcessingResult> => {
+    return await onProcessSpaces(event, job);
   }
 }
 
-export const onProcessSpaces = async (job: Job<SpaceJobContext>): Promise<JobProcessingResult> => {
+export const onProcessSpaces = async (event: any, job: Job<SpaceJobContext>): Promise<JobProcessingResult> => {
   pushLogContext('onProcessSpaces');
   log(` * job.jobContext.nextSpacesCursor = ${job.jobContext.nextSpacesCursor}`);
   const jobProcessingResult: JobProcessingResult = {

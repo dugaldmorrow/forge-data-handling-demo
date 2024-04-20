@@ -3,5 +3,5 @@ import { JobProcessingResult } from "./JobProcessingResult";
 
 export type JobProcessor = {
   getJobTypeId: () => string;
-  processJob: (job: Job<any>) => Promise<JobProcessingResult>;
+  processJob: (event: any, job: Job<any>) => Promise<JobProcessingResult>;
 }

@@ -27,12 +27,12 @@ export const initialUserJobConfig: Job<UserJobContext> = {
 
 export const userJobProcessor: JobProcessor = {
   getJobTypeId: () => 'process-users',
-  processJob: async (job: Job<any>): Promise<JobProcessingResult> => {
-    return await onProcessUsers(job);
+  processJob: async (event: any, job: Job<any>): Promise<JobProcessingResult> => {
+    return await onProcessUsers(event, job);
   }
 }
 
-export const onProcessUsers = async (job: Job<UserJobContext>): Promise<JobProcessingResult> => {
+export const onProcessUsers = async (event: any, job: Job<UserJobContext>): Promise<JobProcessingResult> => {
   pushLogContext('onProcessUsers');
   log(` * job.jobContext.nextUsersCursor = ${job.jobContext.nextUsersCursor}`);
   const jobProcessingResult: JobProcessingResult = {

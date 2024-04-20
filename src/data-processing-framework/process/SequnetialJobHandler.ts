@@ -8,6 +8,8 @@ import { Job } from "../types/Job";
 import { RetryInfo } from "src/data-processing-framework/types/RetryInfo";
 import { TaskStatus } from '../types/TaskStatus';
 import { JobProcessor } from "src/data-processing-framework/types/JobProcessor";
+import { JobProgress} from '../types/JobProgress';
+import { StatusChangeHandler } from "../types/StatusChangeHandler";
 
 // https://developer.atlassian.com/platform/forge/runtime-reference/async-events-api/
 const maxAllowedRetryAfter = 900;
@@ -17,9 +19,14 @@ export class SequnetialJobHandler implements JobHandler {
 
   private jobQueue: Queue;
   private jobTypeIdsToJobProcessors = new Map<string, JobProcessor>();
+  private statusChangeHandler: undefined | StatusChangeHandler = undefined;
 
   constructor(jobQueue: Queue) {
     this.jobQueue = jobQueue;
+  }
+
+  setStatusChangeHandler = (statusChangeHandler: StatusChangeHandler) => {
+    this.statusChangeHandler = statusChangeHandler;
   }
 
   registerJobProcessor = (jobProcessor: JobProcessor) => {
@@ -45,7 +52,7 @@ export class SequnetialJobHandler implements JobHandler {
       nextJob.status = 'IN_PROGRESS';
       const jobProcessor = this.jobTypeIdsToJobProcessors.get(nextJob.jobTypeId);
       if (jobProcessor) {
-        const result = await jobProcessor.processJob(nextJob);
+        const result = await jobProcessor.processJob(event, nextJob);
         if (result.ok) {
           this.enqueueJob(event, context);
         } else if (result.retryInfo) {
@@ -117,7 +124,11 @@ export class SequnetialJobHandler implements JobHandler {
   }
 
   private updateStatus = async (event: any, context: DataProcessingContext, status: TaskStatus, message?: string): Promise<void> => {
-    await updateDataProcessingStatus(event.dataProcessingId, event.dataProcessingStartTime, status, computeJobProgress(context), message);
+    const jobProgress: JobProgress = computeJobProgress(context);
+    await updateDataProcessingStatus(event.dataProcessingId, event.dataProcessingStartTime, status, jobProgress, message);
+    if (this.statusChangeHandler) {
+      await this.statusChangeHandler(event, status, jobProgress.percentComplete, message);
+    }
   }
 
   private computeRetryBackoff = (retryCount: number): number => {
