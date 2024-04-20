@@ -1,2 +1,2 @@
 
-export const errorProbability = 0.5;
+export const errorProbability = 0.1;

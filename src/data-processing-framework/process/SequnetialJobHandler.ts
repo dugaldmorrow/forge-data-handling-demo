@@ -31,6 +31,7 @@ export class SequnetialJobHandler implements JobHandler {
     const payload = queueItem.payload;
     const event = payload.event;
     const context = payload.context as DataProcessingContext;
+    context.queueState.queueSize--;
     const dataProcessingJobs = context.dataProcessingJobs;
     const nextJob = dataProcessingJobs.find((job: Job<any>) => job.status === undefined || job.status === 'IN_PROGRESS');
     if (nextJob) {

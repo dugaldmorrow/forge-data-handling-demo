@@ -15,7 +15,6 @@ const statusRefreshPeriodMillis = 5000;
 
 const JobManagerUI = () => {
 
-  const [dataProcessingId, setDataProcessingId] = useState('');
   const [dataProcessingStatuses, setDataProcessingStatuses] = useState([]);
   const [lastTriggerTime, setLastTriggerTime] = useState(0);
 
@@ -26,27 +25,27 @@ const JobManagerUI = () => {
 
   const onDeleteStatus = async (status) => {
     await invoke('deleteDataProcessingStatusById', {dataProcessingId: status.dataProcessingId});
+    
+    
     const allStatuses = dataProcessingStatuses.filter((s) => s.dataProcessingId !== status.dataProcessingId);
     setDataProcessingStatuses(allStatuses);
-    setDataProcessingId('');
+    await refreshDataProcessingStatuses();
   }
 
   const onTriggerDataProcessing = async (response) => {
     console.log(`Status debugging: in onTriggerDataProcessing.`);
     const dataProcessingStartedResponseText = await invoke('startDataProcessing', {});
     const responseData = JSON.parse(dataProcessingStartedResponseText);
-    const dataProcessingId = responseData.dataProcessingId;
-    setDataProcessingId(dataProcessingId);
     setLastTriggerTime(new Date().getTime());
-
     const dataProcessingStartedFlag = showFlag({
       id: 'data-processing-started-flag',
       title: 'Data processing started',
-      description: `dataProcessingId: ${dataProcessingId}`,
+      description: ``,
       type: 'info',
       isAutoDismiss: true,
     });
     setTimeout(dataProcessingStartedFlag.close, 2000);
+    await refreshDataProcessingStatuses();
   }
 
   const refreshDataProcessingStatuses = async () => {
@@ -78,6 +77,10 @@ const JobManagerUI = () => {
       clearInterval(interval)
     };
   }, [dataProcessingStatuses, lastTriggerTime]);
+
+  useEffect(() => {
+    refreshDataProcessingStatuses();
+  }, []);
 
   const renderStartTime = (status) => {
     const message = `${new Date(status.dataProcessingStartTime).toLocaleTimeString()}`;
@@ -160,7 +163,7 @@ const JobManagerUI = () => {
       ],
     };
     const rows = dataProcessingStatuses.map((status, index) => ({
-      key: `row-${dataProcessingId}`,
+      key: `row-${status.dataProcessingId}`,
       cells: [
         {
           key: status.dataProcessingStartTime,
@@ -210,7 +213,7 @@ const JobManagerUI = () => {
           appearance="default"
           onClick={onCleanupAllJobStatusStorage}
         >
-          Cleanup previous data processing status
+          Cleanup data processing statuses
         </Button>
       </Inline>
       {dataProcessingStatuses.length ? renderStatusesTable(dataProcessingStatuses) : null}

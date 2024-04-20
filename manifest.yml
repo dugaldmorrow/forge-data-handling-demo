@@ -17,7 +17,7 @@ modules:
     - key: queue-fn
       handler: index.onDataProcessorAsyncJob
     - key: ui-resolver-fn
-      handler: resolvers.onMacroEvent
+      handler: index.onMacroEvent
 resources:
   - key: data-processing-ui-res
     path: src/data-processing-framework/frontend/dataProcessingManagerUI.jsx
